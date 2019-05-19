@@ -20,7 +20,7 @@ INDENT = '  '
 TCP_IP_ADDRESS = 'geneKranz.local'
 TCP_PORT = 16000
 GET_RESPONSE = False
-PACKET_NB = 2
+PACKET_NB = 4
 
 USAGE = 'tcp_client.py -i <ip_addr> -p <port> -n <packet_nb> -r'
 
@@ -57,13 +57,11 @@ print 'Sending to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
 # ------------------------------------------------------------------------------
 # Send loop
 #
-for index in range(1, PACKET_NB+1):
-    print INDENT + 'packet ' + str(index)
-    g_code = 'G0 X' + str(index) + ' Y' + str(index) + ' Z' + str(index) + "\n"
+index = 0
+while True:
+    command = s.recv(TCP_BUFFER_SIZE)
+    print 2*INDENT + 'received "' + command.rstrip() +'"'
+    g_code = 'G29 S' + str(index) +  " 1\n"
     s.send(g_code)
-    if GET_RESPONSE:
-        response = s.recv(TCP_BUFFER_SIZE)
-        print 2*INDENT + 'received "' + response.rstrip() +'"'
-    time.sleep(100.0 / 1000.0);
-    time.sleep(3);
+    index = index+1
 s.close()
