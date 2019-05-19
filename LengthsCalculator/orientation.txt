@@ -1,0 +1,4 @@
+g28 ; goto start position
+g90 ; absolute coordinates
+g0 u10 v30
+M00
