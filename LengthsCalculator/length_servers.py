@@ -21,7 +21,10 @@ TCP_BASE_PORT_WINCHES = TCP_PORT_GAMER+1
 WINCH_NB = 4
 TCP_PORT_LANDER = TCP_BASE_PORT_WINCHES+WINCH_NB
 
-USAGE = 'tcp_servers.py -i <ip_addr> -g <port> -l <port> -w <port> -n <nb>'
+USAGE = "lengths_server.py -i <ip_addr>\n" + INDENT + \
+    "-g <gamer_port>\n" + INDENT + \
+    "-w <winches_base_port> -n <winch_nb>\n" + INDENT + \
+    "-l <lander_port>"
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "hi:g:w:n:l:", 
@@ -127,7 +130,7 @@ lander_socket = open_socket(TCP_IP_ADDRESS, TCP_PORT_LANDER)
 print INDENT + 'for lander on TCP/IP port ' + str(TCP_PORT_LANDER)
 
 # ------------------------------------------------------------------------------
-# Run server and restart a new one when client has disconnected
+# Run sockets and restart them when client has disconnected
 #
 previous = time.time()
 gamer_connected = False

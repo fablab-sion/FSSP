@@ -52,18 +52,26 @@ for opt, arg in opts:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 s.connect((TCP_IP_ADDRESS, TCP_PORT))
-print 'Sending to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
+print 'Listening to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
 
 # ------------------------------------------------------------------------------
 # Send loop
 #
 for index in range(1, PACKET_NB+1):
     print INDENT + 'packet ' + str(index)
+    #                                                       send winches command
     g_code = 'G0 X' + str(index) + ' Y' + str(index) + ' Z' + str(index) + "\n"
     s.send(g_code)
     if GET_RESPONSE:
         response = s.recv(TCP_BUFFER_SIZE)
         print 2*INDENT + 'received "' + response.rstrip() +'"'
+    #                                                        send lander command
+    g_code = 'G0 U' + str(index) + ' V' + str(index) + "\n"
+    s.send(g_code)
+    if GET_RESPONSE:
+        response = s.recv(TCP_BUFFER_SIZE)
+        print 2*INDENT + 'received "' + response.rstrip() +'"'
+    #                                                      wait between commands
     time.sleep(100.0 / 1000.0);
-    time.sleep(3);
+    # time.sleep(3);
 s.close()
