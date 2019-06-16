@@ -18,9 +18,9 @@ INDENT = '  '
 # TCP_IP_ADDRESS = '192.168.2.68'
 # TCP_PORT = 3000
 TCP_IP_ADDRESS = 'geneKranz.local'
-TCP_PORT = 16000 + 1 + 4 + 1
+TCP_PORT = 16000 + 1
 
-USAGE = 'tcp_client.py -i <ip_addr> -p <port> '
+USAGE = 'tcp_client.py -i <ip_addr> -p <port>'
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "hp:i:",["port=", "ip="])

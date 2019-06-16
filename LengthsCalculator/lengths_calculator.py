@@ -30,13 +30,13 @@ fixing_points = [
 #
 VERBOSE = 0
 TCP_IP_ADDRESS = 'geneKranz.local'
-TCP_PORT_GAMER = 16000
-TCP_BASE_PORT_WINCHES = TCP_PORT_GAMER+1
+TCP_BASE_PORT_GAMER = 16000
+TCP_BASE_PORT_WINCHES = TCP_BASE_PORT_GAMER+2
 WINCH_NB = 4
 TCP_PORT_LANDER = TCP_BASE_PORT_WINCHES+WINCH_NB
 
 USAGE = "lengths_calculator.py -i <ip_addr>\n" + INDENT + \
-    "-g <gamer_port>\n" + INDENT + \
+    "-g <gamer_base_port>\n" + INDENT + \
     "-w <winches_base_port> -n <winch_nb>\n" + INDENT + \
     "-l <lander_port>"
 
@@ -56,7 +56,7 @@ for opt, arg in opts:
     elif opt in ('-i', '--ip'):
         TCP_IP_ADDRESS = arg
     elif opt in ('-g', '--gamer'):
-        TCP_PORT_GAMER = int(arg)
+        TCP_BASE_PORT_GAMER = int(arg)
     elif opt in ('-w', '--winches'):
         TCP_BASE_PORT_WINCHES = int(arg)
     elif opt in ('-n', '--winchNb'):
@@ -312,10 +312,12 @@ def interpret_command(code_type, code_id, code_params):
 # ------------------------------------------------------------------------------
 # Open sockets
 #
-print 'Listening on "' + TCP_IP_ADDRESS + '"'
-#                                                                   gamer socket
-gamer_socket = open_socket(TCP_IP_ADDRESS, TCP_PORT_GAMER)
-print INDENT + 'for gamer on TCP/IP port ' + str(TCP_PORT_GAMER)
+print 'Opening links on "' + TCP_IP_ADDRESS + '"'
+#                                                                  gamer sockets
+gamer_socket = open_socket(TCP_IP_ADDRESS, TCP_BASE_PORT_GAMER)
+print INDENT + 'for gamer on TCP/IP port ' + str(TCP_BASE_PORT_GAMER)
+gamer_status_socket = open_socket(TCP_IP_ADDRESS, TCP_BASE_PORT_GAMER+1)
+print INDENT + 'for gamer status on TCP/IP port ' + str(TCP_BASE_PORT_GAMER+1)
 #                                                                  lander socket
 lander_socket = open_socket(TCP_IP_ADDRESS, TCP_PORT_LANDER)
 print INDENT + 'for lander on TCP/IP port ' + str(TCP_PORT_LANDER)
@@ -325,14 +327,20 @@ print INDENT + 'for lander on TCP/IP port ' + str(TCP_PORT_LANDER)
 #
 previous = time.time()
 gamer_connected = False
+gamer_status_connected = False
 lander_connected = False
 while True:
     #                                                      test gamer connection
     if not gamer_connected:
         (gamer_connected, gamer_conn) = connect_to_client(gamer_socket)
+    if not gamer_status_connected:
+        (gamer_status_connected, gamer_status_conn) = \
+            connect_to_client(gamer_status_socket)
     if VERBOSE >= 2:
         if not gamer_connected:
             print 'Waiting for gamer connection'
+        if not gamer_status_connected:
+            print 'Waiting for gamer status connection'
     #                                                      test gamer connection
     if not lander_connected:
         (lander_connected, lander_conn) = connect_to_client(lander_socket)
@@ -387,5 +395,5 @@ while True:
         (lander_connected, data_received, data) = get_client_data(lander_conn)
         if data_received:
             print INDENT + 'received "' + data + '" from lander'
-            if gamer_connected:
-                send_client_data(gamer_conn, 'Gamer', data)
+            if gamer_status_connected:
+                send_client_data(gamer_status_conn, 'Gamer status', data)
