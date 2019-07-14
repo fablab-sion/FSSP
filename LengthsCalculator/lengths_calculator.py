@@ -4,6 +4,7 @@ import socket
 import time
 import sys, getopt
 import re
+import numpy as np
 
 # ------------------------------------------------------------------------------
 # Constants
@@ -282,6 +283,25 @@ def g_time(parameters):
             time = time + value * 1.0E-3
 
     return(time)
+
+
+# ------------------------------------------------------------------------------
+# transform cartesian coordinates to cable lengths
+#
+def position_to_lengths(position, fixing_points):
+    """transform position to lengths"""
+    lengths = np.zeros(len(position))
+    for coordinate_index in range(len(position)):
+        temp = 0
+        for fixing_index in range(len(fixing_points)):
+            temp = temp + (
+                position[coordinate_index] -
+                fixing_points[fixing_index][coordinate_index]
+            )**2
+        lengths[coordinate_index] = np.sqrt(temp)
+
+    return(lengths)
+
 
 # ------------------------------------------------------------------------------
 # Interpret command
