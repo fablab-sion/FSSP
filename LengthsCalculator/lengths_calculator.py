@@ -291,16 +291,15 @@ def g_time(parameters):
 #
 def position_to_lengths(position, fixing_points):
     """transform position to lengths"""
-    lengths = np.zeros(len(position))
-    for coordinate_index in range(len(position)):
+    lengths = np.zeros(len(fixing_points))
+    for fixing_index in range(len(fixing_points)):
         temp = 0
-        for fixing_index in range(len(fixing_points)):
+        for coordinate_index in range(len(position)):
             temp = temp + (
                 position[coordinate_index] -
                 fixing_points[fixing_index][coordinate_index]
             )**2
-        lengths[coordinate_index] = np.sqrt(temp)
-
+        lengths[fixing_index] = np.sqrt(temp)
     return(lengths)
 
 
