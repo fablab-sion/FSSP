@@ -32,7 +32,17 @@ VERBOSE = 0
 TCP_IP_ADDRESS = 'geneKranz.local'
 TCP_BASE_PORT_GAMER = 16000
 TCP_BASE_PORT_WINCHES = TCP_BASE_PORT_GAMER+2
-WINCH_NB = 4
+WINCH_ADDRESSES = [
+    ('winch_0DF4.local', 3000),
+    # ('winch_0DF4.local', 3000),
+    # ('winch_5820.local', 3000),
+    # ('winch_24E8.local', 3000),
+    ('localhost', 3001),
+    ('localhost', 3002),
+    ('localhost', 3003),
+    ('localhost', 3004),
+]
+WINCH_NB = len(WINCH_ADDRESSES)
 TCP_PORT_LANDER = TCP_BASE_PORT_WINCHES+WINCH_NB
 
 USAGE = "lengths_calculator.py -i <ip_addr>\n" + INDENT + \
@@ -89,10 +99,20 @@ def connect_to_client(client_socket):
         client_connection, client_address = client_socket.accept()
         client_connection.settimeout(1.0)
         print 'Received connection from', client_address[0]
-    except socket.error:
+    except:
         client_connected = False
 
     return(client_connected, client_connection)
+
+def connect_to_socket(address, port):
+    sock = None
+    try:
+        sock = socket.socket()
+        sock.connect((address, port))
+    except:
+        pass
+    return sock
+
 
 # ------------------------------------------------------------------------------
 # Get data from client
@@ -318,9 +338,18 @@ gamer_socket = open_socket(TCP_IP_ADDRESS, TCP_BASE_PORT_GAMER)
 print INDENT + 'for gamer on TCP/IP port ' + str(TCP_BASE_PORT_GAMER)
 gamer_status_socket = open_socket(TCP_IP_ADDRESS, TCP_BASE_PORT_GAMER+1)
 print INDENT + 'for gamer status on TCP/IP port ' + str(TCP_BASE_PORT_GAMER+1)
-#                                                                  lander socket
+#
 lander_socket = open_socket(TCP_IP_ADDRESS, TCP_PORT_LANDER)
 print INDENT + 'for lander on TCP/IP port ' + str(TCP_PORT_LANDER)
+#
+print INDENT + 'trying to connect to winches'
+winch_sockets = []
+for address, port in WINCH_ADDRESSES:
+    winch_sockets.append(connect_to_socket(address, port))
+if not winch_sockets or any([w is None for w in winch_sockets]):
+    print INDENT + 'can not connect to winches'
+else:
+    print INDENT + 'connected to winches'
 
 # ------------------------------------------------------------------------------
 # Run sockets and restart them when client has disconnected
