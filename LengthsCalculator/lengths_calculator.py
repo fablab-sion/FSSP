@@ -311,8 +311,8 @@ def interpret_command(code_type, code_id, code_params):
     global actual_position
     global actual_orientation
     global actual_speed
-    winches_commands = ''
     lander_command = ''
+    winches_commands = []
     if code_type == 'g':
         #                                                     lander orientation
         if (code_id == 0) or (code_id == 1):
@@ -324,6 +324,19 @@ def interpret_command(code_type, code_id, code_params):
                 if code_id == 1:
                     actual_speed = g_speed(code_params, actual_speed)
                     lander_command = lander_command + " F%d" % actual_speed
+        #                                                      winches commands
+            if re.search('x', code_params):
+                position = g_coordinates(code_params, (0, 0, 0))
+                for i in range(len(actual_position)):
+                    actual_position[i] += position[i]
+                lengths = position_to_lengths(actual_position, fixing_points)
+                for l in lengths:
+                    winches_commands.append(
+                        "G%d X%d" % (code_id, l)
+                    )
+                if code_id == 1:
+                    actual_speed = g_speed(code_params, actual_speed)
+                    winches_commands = [w + " F%d" % actual_speed for w in winches_commands]
         #                                                                   wait
         elif code_id == 4:
             wait_delay = g_time(code_params)
@@ -418,6 +431,10 @@ while True:
                         parse_command(command)
                     (winches_commands, lander_command) = \
                         interpret_command(code_type, code_id, code_params)
+                    for i, command in enumerate(winches_commands):
+                        socket = winch_sockets[i]
+                        if socket:
+                            socket.send(command + '\n')
                     if lander_connected:
                         if lander_command != '':
                             if valid:
