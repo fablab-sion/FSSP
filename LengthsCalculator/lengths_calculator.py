@@ -349,7 +349,7 @@ while True:
             print 'Waiting for lander connection'
     #                                           wait for at least one connection
     if (not gamer_connected) or (not lander_connected):
-        time.sleep(1);
+        time.sleep(0.1);
     #                                                          get gamer command
     if gamer_connected:
         (gamer_connected, data_received, data) = get_client_data(gamer_conn)
