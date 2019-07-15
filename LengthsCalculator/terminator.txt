@@ -1,0 +1,9 @@
+F11                 Toggle fullscreen
+Ctrl + Shift + O    Split terminals horizontally
+Ctrl + Shift + E    Split terminals vertically
+Ctrl + Shift + W    Close current Panel
+Ctrl + Shift + T    Open new tab
+Alt + ↑             Move to the terminal above the current one
+Alt + ↓             Move to the terminal below the current one
+Alt + ←             Move to the terminal left of the current one
+Alt + →             Move to the terminal right of the current one

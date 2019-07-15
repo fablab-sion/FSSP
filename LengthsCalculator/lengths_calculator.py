@@ -110,7 +110,7 @@ def connect_to_client(client_socket):
     return(client_connected, client_connection)
 
 # ------------------------------------------------------------------------------
-# Check for client
+# Check for server
 #
 def connect_to_server(ip_address, tcp_port):
     server_socket = None
@@ -134,20 +134,25 @@ def get_client_data(client_connection):
     data = ''
     try:
         data = client_connection.recv(TCP_BUFFER_SIZE)
-    except socket.timeout:
-        if VERBOSE >= 2:
-            print 'Waiting for data'
+    # except socket.timeout:
+    except Exception as e:
         data_received = False
-    except socket.error:
-        if VERBOSE >= 1:
-            print 'Connection end'
-        client_connection.close()
-        client_connected = False
-        data_received = False
-#    if data == '':
-#        client_connection.close()
-#        client_connected = False
-#        data_received = False
+        if str(e) == 'timed out':
+            if VERBOSE >= 2:
+                print 'Waiting for data'
+            data_received = False
+        else:
+            print '> ' + str(e)
+            if VERBOSE >= 1:
+                print 'Connection end'
+            client_connection.close()
+            client_connected = False
+    # except socket.error:
+    #     if VERBOSE >= 1:
+    #         print 'Connection end'
+    #     client_connection.close()
+    #     client_connected = False
+    #     data_received = False
 
     return(client_connected, data_received, data.rstrip())
 
@@ -158,7 +163,8 @@ def send_client_data(client_connection, client_name, data):
     client_connected = True
     try:
         client_connection.send(data)
-    except socket.error:
+    # except socket.error:
+    except:
         client_connection.close()
         client_connected = False
 
@@ -477,3 +483,4 @@ while True:
             print INDENT + 'received "' + data + '" from lander'
             if gamer_status_connected:
                 send_client_data(gamer_status_conn, 'Gamer status', data)
+    time.sleep(1)

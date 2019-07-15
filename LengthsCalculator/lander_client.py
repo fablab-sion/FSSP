@@ -18,7 +18,8 @@ INDENT = '  '
 # TCP_IP_ADDRESS = '192.168.2.68'
 # TCP_PORT = 3000
 TCP_IP_ADDRESS = 'geneKranz.local'
-TCP_PORT = 16000 + 1 + 4 + 1
+TCP_IP_ADDRESS = 'localhost'
+TCP_PORT = 16000 + 2
 
 USAGE = 'tcp_client.py -i <ip_addr> -p <port> '
 
@@ -55,6 +56,7 @@ index = 0
 while True:
     command = s.recv(TCP_BUFFER_SIZE)
     print 2*INDENT + 'received "' + command.rstrip() +'"'
+    time.sleep(5)
     g_code = 'G29 S' + str(index) +  " 1\n"
     s.send(g_code)
     index = index+1

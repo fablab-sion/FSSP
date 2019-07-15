@@ -75,5 +75,5 @@ for index in range(1, PACKET_NB+1):
     #                                                      wait between commands
     time.sleep(100.0 / 1000.0);
     # time.sleep(3);
+time.sleep(2);
 s.close()
-time.sleep(3);
