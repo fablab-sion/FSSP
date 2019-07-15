@@ -26,26 +26,26 @@ fixing_points = [
     [100.0,   0.0, 0.0],
     [100.0, 100.0, 0.0]
 ]
+winch_nb = len(fixing_points)  # this number can increase with M13n commands
 
 # ==============================================================================
 # Command line options
 #
 VERBOSE = 0
 TCP_IP_ADDRESS = 'geneKranz.local'
+TCP_IP_ADDRESS = 'localhost'
 TCP_BASE_PORT_GAMER = 16000
-TCP_BASE_PORT_WINCHES = TCP_BASE_PORT_GAMER+2
+TCP_PORT_LANDER = TCP_BASE_PORT_GAMER+2
+TCP_BASE_PORT_WINCHES = TCP_PORT_LANDER+1
 WINCH_ADDRESSES = [
     ('winch_0DF4.local', 3000),
-    # ('winch_0DF4.local', 3000),
-    # ('winch_5820.local', 3000),
-    # ('winch_24E8.local', 3000),
-    ('localhost', 3001),
-    ('localhost', 3002),
-    ('localhost', 3003),
-    ('localhost', 3004),
+    ('winch_0DF4.local', 3000),
+    ('winch_5820.local', 3000),
+    ('winch_24E8.local', 3000),
 ]
-WINCH_NB = len(WINCH_ADDRESSES)
-TCP_PORT_LANDER = TCP_BASE_PORT_WINCHES+WINCH_NB
+WINCH_ADDRESSES = []
+for index in range(len(fixing_points)):
+    WINCH_ADDRESSES.append(('localhost', TCP_BASE_PORT_WINCHES+index))
 
 USAGE = "lengths_calculator.py -i <ip_addr>\n" + INDENT + \
     "-g <gamer_base_port>\n" + INDENT + \
@@ -71,6 +71,9 @@ for opt, arg in opts:
         TCP_BASE_PORT_GAMER = int(arg)
     elif opt in ('-w', '--winches'):
         TCP_BASE_PORT_WINCHES = int(arg)
+        WINCH_ADDRESSES = []
+        for index in range(len(fixing_points)):
+            WINCH_ADDRESSES.append(('localhost', TCP_BASE_PORT_WINCHES+index))
     elif opt in ('-n', '--winchNb'):
         WINCH_NB = int(arg)
     elif opt in ('-l', '--lander'):
@@ -106,15 +109,21 @@ def connect_to_client(client_socket):
 
     return(client_connected, client_connection)
 
-def connect_to_socket(address, port):
-    sock = None
+# ------------------------------------------------------------------------------
+# Check for client
+#
+def connect_to_server(ip_address, tcp_port):
+    server_socket = None
     try:
-        sock = socket.socket()
-        sock.connect((address, port))
+        # server_socket = socket.socket()
+        # server_socket.connect((ip_address, tcp_port))
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        server_socket.connect((ip_address, tcp_port))
     except:
-        pass
-    return sock
-
+        server_socket = None
+        # pass
+    return(server_socket)
 
 # ------------------------------------------------------------------------------
 # Get data from client
@@ -348,6 +357,7 @@ def interpret_command(code_type, code_id, code_params):
             index = code_id - 131
             while len(fixing_points) < index+1:
                 fixing_points.append([0.0, 0.0, 0.0])
+            winch_nb = len(fixing_points)
             fixing_points[index] = g_coordinates(
                 code_params, fixing_points[index]
             )
@@ -371,18 +381,22 @@ gamer_socket = open_socket(TCP_IP_ADDRESS, TCP_BASE_PORT_GAMER)
 print INDENT + 'for gamer on TCP/IP port ' + str(TCP_BASE_PORT_GAMER)
 gamer_status_socket = open_socket(TCP_IP_ADDRESS, TCP_BASE_PORT_GAMER+1)
 print INDENT + 'for gamer status on TCP/IP port ' + str(TCP_BASE_PORT_GAMER+1)
-#
+#                                                                  lander socket
 lander_socket = open_socket(TCP_IP_ADDRESS, TCP_PORT_LANDER)
 print INDENT + 'for lander on TCP/IP port ' + str(TCP_PORT_LANDER)
-#
-print INDENT + 'trying to connect to winches'
+#                                                                  winch sockets
+print 'Trying to connect to winches'
 winch_sockets = []
-for address, port in WINCH_ADDRESSES:
-    winch_sockets.append(connect_to_socket(address, port))
-if not winch_sockets or any([w is None for w in winch_sockets]):
-    print INDENT + 'can not connect to winches'
+#for address, port in WINCH_ADDRESSES:
+for index in range(winch_nb):
+    (address, port) = WINCH_ADDRESSES[index]
+    winch_sockets.append(connect_to_server(address, port))
+if all([w is None for w in winch_sockets]):
+    print INDENT + 'could not connect to any winch'
+elif any([w is None for w in winch_sockets]):
+    print INDENT + "could not connect to all %d winches" % winch_nb
 else:
-    print INDENT + 'connected to winches'
+    print INDENT + 'connected to all winches'
 
 # ------------------------------------------------------------------------------
 # Run sockets and restart them when client has disconnected
@@ -403,7 +417,7 @@ while True:
             print 'Waiting for gamer connection'
         if not gamer_status_connected:
             print 'Waiting for gamer status connection'
-    #                                                      test gamer connection
+    #                                                     test lander connection
     if not lander_connected:
         (lander_connected, lander_conn) = connect_to_client(lander_socket)
     if VERBOSE >= 2:

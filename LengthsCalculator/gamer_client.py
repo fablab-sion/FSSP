@@ -18,6 +18,7 @@ INDENT = '  '
 # TCP_IP_ADDRESS = '192.168.2.68'
 # TCP_PORT = 3000
 TCP_IP_ADDRESS = 'geneKranz.local'
+TCP_IP_ADDRESS = 'localhost'
 TCP_PORT = 16000
 GET_RESPONSE = False
 PACKET_NB = 2
@@ -75,3 +76,4 @@ for index in range(1, PACKET_NB+1):
     time.sleep(100.0 / 1000.0);
     # time.sleep(3);
 s.close()
+time.sleep(3);

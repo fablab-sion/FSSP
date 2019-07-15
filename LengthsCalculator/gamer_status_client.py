@@ -17,10 +17,12 @@ INDENT = '  '
 #
 # TCP_IP_ADDRESS = '192.168.2.68'
 # TCP_PORT = 3000
+VERBOSE = 0
 TCP_IP_ADDRESS = 'geneKranz.local'
+TCP_IP_ADDRESS = 'localhost'
 TCP_PORT = 16000 + 1
 
-USAGE = 'tcp_client.py -i <ip_addr> -p <port>'
+USAGE = 'gamer_status_client.py -v -i <ip_addr> -p <port>'
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "hp:i:",["port=", "ip="])
@@ -32,6 +34,8 @@ for opt, arg in opts:
     if opt == '-h':
         print USAGE
         sys.exit()
+    elif opt in ('-v', '--verbose'):
+        VERBOSE = VERBOSE + 1
     elif opt in ('-i', '--ip'):
         TCP_IP_ADDRESS = arg
     elif opt in ('-p', '--port'):
@@ -46,7 +50,7 @@ for opt, arg in opts:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 s.connect((TCP_IP_ADDRESS, TCP_PORT))
-print 'Sending to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
+print 'Listening to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
 
 # ------------------------------------------------------------------------------
 # Send loop
