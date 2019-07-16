@@ -19,6 +19,7 @@ INDENT = '  '
 # ------------------------------------------------------------------------------
 # System parameters
 #
+absolute_displacement = True
 actual_position = [0.0, 0.0, 0.0]
 actual_orientation = [0.0, 0.0]
 actual_speed = 0.0
@@ -136,6 +137,7 @@ def get_client_data(client_connection):
     # print client_connection.getpeername()
     # print client_connection.getsockname()
     # print client_connection.gettimeout()
+    # print "checking for data from %s, port %d" % (client_connection.getsockname())
     client_connected = True
     data_received = True
     data = ''
@@ -151,14 +153,26 @@ def get_client_data(client_connection):
             client_connection.close()
             client_connected = False
             data_received = False
+        # elif error_id == 107:  # Transport endpoint is not connected
+        #     if VERBOSE >= 1:
+        #         print "End of connection to port %d" % port
+        #     client_connection.close()
+        #     client_connected = False
+        #     data_received = False
         elif str(e) == 'timed out':
-            if VERBOSE >= 2:
+            if VERBOSE >= 3:
                 print "Waiting for data on port %d" % port
             data_received = False
+        else:
+            print "Exception %s on port %d" % (str(e), port)
 
     data = data.rstrip()
-    if len(data) == 0:
+    if (len(data) == 0) and data_received:
+        (address, port) = client_connection.getsockname()
+        if VERBOSE >= 1:
+            print "End of connection to port %d" % port
         data_received = False
+        client_connected = False
 
     return(client_connected, data_received, data)
 
@@ -216,7 +230,7 @@ def parse_command(command):
         elif code_type == 'm':
             if code_id == 0:
                 valid = True
-            elif (code_id >= 131) and (code_id <= 130+FIXING_POINT_NB):
+            elif (code_id >= 131) and (code_id <= 130+winch_nb):
                 valid = True
                                                                   # display info
         if VERBOSE >= 2:
@@ -327,6 +341,8 @@ def position_to_lengths(position, fixing_points):
 # Interpret command
 #
 def interpret_command(code_type, code_id, code_params):
+    global winch_nb
+    global absolute_displacement
     global actual_position
     global actual_orientation
     global actual_speed
@@ -347,8 +363,11 @@ def interpret_command(code_type, code_id, code_params):
             #                                                   winches commands
             if re.search('x', code_params):
                 position = g_coordinates(code_params, (0, 0, 0))
-                for i in range(len(actual_position)):
-                    actual_position[i] += position[i]
+                for index in range(len(actual_position)):
+                    if absolute_displacement:
+                        actual_position[index] = position[index]
+                    else:
+                        actual_position[index] += position[index]
                 lengths = position_to_lengths(actual_position, fixing_points)
                 for l in lengths:
                     winches_commands.append(
@@ -363,9 +382,19 @@ def interpret_command(code_type, code_id, code_params):
             if VERBOSE >= 1:
                 print(3*INDENT + "waiting for %.3f sec." % (wait_delay))
                 time.sleep(wait_delay)
+        #                                                  absolute displacement
+        elif code_id == 90:
+            if VERBOSE >= 1:
+                print(3*INDENT + 'Switching to absolute displacements')
+            absolute_displacement = True
+        #                                                  relative displacement
+        elif code_id == 91:
+            if VERBOSE >= 1:
+                print(3*INDENT + 'Switching to relative displacements')
+            absolute_displacement = True
     if code_type == 'm':
         #                                                          fixing points
-        if (code_id > 130) and (code_id <= 130 + FIXING_POINT_NB):
+        if (code_id > 130) and (code_id <= 130 + winch_nb):
             index = code_id - 131
             while len(fixing_points) < index+1:
                 fixing_points.append([0.0, 0.0, 0.0])
@@ -424,7 +453,7 @@ while True:
     if not gamer_status_connected:
         (gamer_status_connected, gamer_status_conn) = \
             connect_to_client(gamer_status_socket)
-    if VERBOSE >= 2:
+    if VERBOSE >= 3:
         if not gamer_connected:
             print 'Waiting for gamer connection'
         if not gamer_status_connected:
@@ -432,7 +461,7 @@ while True:
     #                                                     test lander connection
     if not lander_connected:
         (lander_connected, lander_conn) = connect_to_client(lander_socket)
-    if VERBOSE >= 2:
+    if VERBOSE >= 3:
         if not lander_connected:
             print 'Waiting for lander connection'
     #                                           wait for at least one connection

@@ -1,0 +1,9 @@
+g90 ; absolute coordinates
+g0 x1500 y2000 z2500 ; go to start position
+g0 x1500 y2000 z2500 ; go to same position
+
+g91 ; relative coordinates, draw a square
+g0 x100
+g0 y100
+g0 x-100
+g0 y-100

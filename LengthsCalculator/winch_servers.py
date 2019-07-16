@@ -174,11 +174,12 @@ while True:
                 if data_received:
                     now = time.time()
                     time_difference_ms = int((now - previous) * 1000.0)
-                    if time_difference_ms > 10:
+                    if time_difference_ms > 1100:
                         print 2*INDENT + 'after ' + \
                             str(time_difference_ms) + ' ms'
+                    port = ports[index]
                     data = re.sub('\n', '|', data.rstrip())
-                    print 3*INDENT + 'received "' + data + '"'
+                    print 3*INDENT + "received \"%s\" from port %d" % (data, port)
                     previous = now
                     client_connected = send_client_data(
                         conn, 'client ' + str(index+1), 'OK'

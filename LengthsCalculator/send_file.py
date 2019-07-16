@@ -16,14 +16,19 @@ INDENT = '  '
 #
 VERBOSE = 0
 TCP_IP_ADDRESS = 'geneKranz.local'
+TCP_IP_ADDRESS = 'localhost'
 TCP_PORT = 16000
 CODE_FILE = 'cartesian.txt'
-END_DELAY = 3.0
+GET_RESPONSE = False
+SEND_DELAY = 0.5
+END_DELAY = 1.0
 
-USAGE = 'tcp_client.py -i <ip_addr> -p <port>'
+USAGE = 'send_file.py -i <ip_addr> -p <port> -f <file>'
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "hvp:i:",["port=", "ip="])
+    opts, args = getopt.getopt(
+        sys.argv[1:], "hvi:p:f:d:r", ["ip=", "port=", "file=", "delay="]
+    )
 except getopt.GetoptError:
     print USAGE
     sys.exit(2)
@@ -39,8 +44,10 @@ for opt, arg in opts:
         TCP_IP_ADDRESS = arg
     elif opt in ('-p', '--port'):
         TCP_PORT = int(arg)
-    elif opt in ('-n', '--packets'):
-        PACKET_NB = int(arg)
+    elif opt in ('-f', '--file'):
+        CODE_FILE = arg
+    elif opt in ('-d', '--delay'):
+        SEND_DELAY = int(arg)
     elif opt == '-r':
         GET_RESPONSE = True
 
@@ -53,10 +60,10 @@ if len(args) >= 1:
 # ------------------------------------------------------------------------------
 # Open socket
 #
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-s.connect((TCP_IP_ADDRESS, TCP_PORT))
-s.settimeout(0.01)
+tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+tcp_socket.connect((TCP_IP_ADDRESS, TCP_PORT))
+tcp_socket.settimeout(0.1)
 if VERBOSE == 1:
     print 'Sending "' + CODE_FILE + '"'
     print INDENT + 'to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
@@ -69,16 +76,15 @@ with open(CODE_FILE) as g_code_file:
     for line in g_code_file:
         line = line.rstrip()
         print(INDENT + line)
-        s.send(line + "\n")
-        try:
-            response = s.recv(TCP_BUFFER_SIZE)
-            print 2*INDENT + response.rstrip()
-        except:
-            print 2*INDENT + 'no response'
+        if line != '':
+            tcp_socket.send(line + "\n")
+            time.sleep(SEND_DELAY)
+            if GET_RESPONSE:
+                try:
+                    response = tcp_socket.recv(TCP_BUFFER_SIZE)
+                    print 2*INDENT + response.rstrip()
+                except:
+                    print 2*INDENT + 'no response'
 time.sleep(END_DELAY)
-try:
-    response = s.recv(TCP_BUFFER_SIZE)
-    print response
-except:
-    print ''
-s.close()
+tcp_socket.close()
+#time.sleep(END_DELAY)
