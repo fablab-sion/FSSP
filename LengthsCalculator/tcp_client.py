@@ -21,11 +21,16 @@ TCP_IP_ADDRESS = 'geneKranz.local'
 TCP_PORT = 16000
 GET_RESPONSE = False
 PACKET_NB = 4
+DELAY = 100
 
-USAGE = 'tcp_client.py -i <ip_addr> -p <port> -n <packet_nb> -r'
+USAGE = 'tcp_client.py -i <ip_addr> -p <port> -n <packet_nb> -d <delay> -r'
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "hrp:i:n:",["port=", "ip=", "packets="])
+    opts, args = getopt.getopt(
+        sys.argv[1:],
+        "hrp:i:n:d:",
+        ["port=", "ip=", "packets=", "delay="]
+    )
 except getopt.GetoptError:
     print USAGE
     sys.exit(2)
@@ -40,6 +45,8 @@ for opt, arg in opts:
         TCP_PORT = int(arg)
     elif opt in ('-n', '--packets'):
         PACKET_NB = int(arg)
+    elif opt in ('-d', '--delay'):
+        DELAY = int(arg)
     elif opt == '-r':
         GET_RESPONSE = True
 
@@ -64,5 +71,5 @@ for index in range(1, PACKET_NB+1):
     if GET_RESPONSE:
         response = s.recv(TCP_BUFFER_SIZE)
         print 2*INDENT + 'received "' + response.rstrip() +'"'
-    time.sleep (100.0 / 1000.0);
+    time.sleep (DELAY / 1000.0);
 s.close()
