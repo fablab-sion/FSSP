@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+#
+# netstat -an | grep 1600
 
 import socket
 import time
@@ -103,7 +105,8 @@ def connect_to_client(client_socket):
     try:
         client_connection, client_address = client_socket.accept()
         client_connection.settimeout(1.0)
-        print 'Received connection from', client_address[0]
+        (address, port) = client_connection.getsockname()
+        print "Received connection on port %d" % port
     except:
         client_connected = False
 
@@ -129,32 +132,35 @@ def connect_to_server(ip_address, tcp_port):
 # Get data from client
 #
 def get_client_data(client_connection):
+    # print client_connection.fileno()
+    # print client_connection.getpeername()
+    # print client_connection.getsockname()
+    # print client_connection.gettimeout()
     client_connected = True
     data_received = True
     data = ''
     try:
         data = client_connection.recv(TCP_BUFFER_SIZE)
-    # except socket.timeout:
     except Exception as e:
-        data_received = False
-        if str(e) == 'timed out':
-            if VERBOSE >= 2:
-                print 'Waiting for data'
-            data_received = False
-        else:
-            print '> ' + str(e)
+        error_id = e.errno
+        # print str(error_id) + ' : ' + str(e)
+        (address, port) = client_connection.getsockname()
+        if error_id == 104:  # Connection reset by peer
             if VERBOSE >= 1:
-                print 'Connection end'
+                print "End of connection to port %d" % port
             client_connection.close()
             client_connected = False
-    # except socket.error:
-    #     if VERBOSE >= 1:
-    #         print 'Connection end'
-    #     client_connection.close()
-    #     client_connected = False
-    #     data_received = False
+            data_received = False
+        elif str(e) == 'timed out':
+            if VERBOSE >= 2:
+                print "Waiting for data on port %d" % port
+            data_received = False
 
-    return(client_connected, data_received, data.rstrip())
+    data = data.rstrip()
+    if len(data) == 0:
+        data_received = False
+
+    return(client_connected, data_received, data)
 
 # ------------------------------------------------------------------------------
 # Send data to client
@@ -317,7 +323,6 @@ def position_to_lengths(position, fixing_points):
         lengths[fixing_index] = np.sqrt(temp)
     return(lengths)
 
-
 # ------------------------------------------------------------------------------
 # Interpret command
 #
@@ -330,6 +335,7 @@ def interpret_command(code_type, code_id, code_params):
     if code_type == 'g':
         #                                                     lander orientation
         if (code_id == 0) or (code_id == 1):
+            #                                                    lander commands
             if re.search('u', code_params):
                 actual_orientation = \
                     g_orientation(code_params, actual_orientation)
@@ -338,7 +344,7 @@ def interpret_command(code_type, code_id, code_params):
                 if code_id == 1:
                     actual_speed = g_speed(code_params, actual_speed)
                     lander_command = lander_command + " F%d" % actual_speed
-        #                                                      winches commands
+            #                                                   winches commands
             if re.search('x', code_params):
                 position = g_coordinates(code_params, (0, 0, 0))
                 for i in range(len(actual_position)):

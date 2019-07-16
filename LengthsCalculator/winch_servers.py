@@ -5,6 +5,7 @@
 import socket
 import time
 import sys, getopt
+import re
 
 # ------------------------------------------------------------------------------
 # Constants
@@ -172,9 +173,12 @@ while True:
                 (client_connected, data_received, data) = get_client_data(conn)
                 if data_received:
                     now = time.time()
-                    print 2*INDENT + 'received "' + data.rstrip() + '"'
-                    print 3*INDENT + 'after ' + \
-                        str(int((now - previous) * 1000.0)) + ' ms'
+                    time_difference_ms = int((now - previous) * 1000.0)
+                    if time_difference_ms > 10:
+                        print 2*INDENT + 'after ' + \
+                            str(time_difference_ms) + ' ms'
+                    data = re.sub('\n', '|', data.rstrip())
+                    print 3*INDENT + 'received "' + data + '"'
                     previous = now
                     client_connected = send_client_data(
                         conn, 'client ' + str(index+1), 'OK'

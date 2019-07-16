@@ -21,7 +21,7 @@ TCP_IP_ADDRESS = 'geneKranz.local'
 TCP_IP_ADDRESS = 'localhost'
 TCP_PORT = 16000 + 2
 
-USAGE = 'tcp_client.py -i <ip_addr> -p <port> '
+USAGE = 'lander_client.py -i <ip_addr> -p <port> '
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "hp:i:",["port=", "ip="])
@@ -47,7 +47,7 @@ for opt, arg in opts:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 s.connect((TCP_IP_ADDRESS, TCP_PORT))
-print 'Sending to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
+print 'Listening to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
 
 # ------------------------------------------------------------------------------
 # Send loop
