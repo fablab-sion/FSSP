@@ -20,7 +20,8 @@ INDENT = '  '
 # System parameters
 #
 absolute_displacement = True
-actual_position = [1350, 1800, 400]
+inital_position = [1350, 1800, 400]
+actual_position = inital_position[:]
 actual_orientation = [0.0, 0.0]
 actual_speed = 0.0
 fixing_points = [
@@ -368,6 +369,10 @@ def interpret_command(code_type, code_id, code_params):
                     else:
                         actual_position[index] += position[index]
                 lengths = position_to_lengths(actual_position, fixing_points)
+                # Fix for the length of initial positions
+                lengths_initial = position_to_lengths(inital_position, fixing_points)
+                for i, o in enumerate(lengths_initial):
+                    lengths[i] -= o
                 for l in lengths:
                     winches_commands.append(
                         "G%d X%d" % (code_id, l)
