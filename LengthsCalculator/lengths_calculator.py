@@ -518,4 +518,3 @@ while True:
             print INDENT + 'received "' + data + '" from lander'
             if gamer_status_connected:
                 send_client_data(gamer_status_conn, 'Gamer status', data)
-    time.sleep(1)
