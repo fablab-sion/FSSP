@@ -20,14 +20,14 @@ INDENT = '  '
 # System parameters
 #
 absolute_displacement = True
-actual_position = [0.0, 0.0, 0.0]
+actual_position = [1350, 1800, 400]
 actual_orientation = [0.0, 0.0]
 actual_speed = 0.0
 fixing_points = [
-    [0.0,     0.0, 0.0],
-    [  0.0, 100.0, 0.0],
-    [100.0,   0.0, 0.0],
-    [100.0, 100.0, 0.0]
+    [  0.0,   0.0, 2500],
+    [ 2900,   0.0, 2500],
+    [ 2900,  4200, 2500],
+    [  0.0,  4200, 2500],
 ]
 winch_nb = len(fixing_points)  # this number can increase with M13n commands
 
@@ -42,11 +42,10 @@ TCP_PORT_LANDER = TCP_BASE_PORT_GAMER+2
 TCP_BASE_PORT_WINCHES = TCP_PORT_LANDER+1
 WINCH_ADDRESSES = [
     ('winch_0DF4.local', 3000),
-    ('winch_0DF4.local', 3000),
+    ('winch_02B4.local', 3000),
     ('winch_5820.local', 3000),
     ('winch_24E8.local', 3000),
 ]
-WINCH_ADDRESSES = []
 for index in range(len(fixing_points)):
     WINCH_ADDRESSES.append(('localhost', TCP_BASE_PORT_WINCHES+index))
 
