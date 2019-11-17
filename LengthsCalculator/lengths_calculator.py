@@ -47,6 +47,7 @@ WINCH_ADDRESSES = [
     ('winch_5820.local', 3000),
     ('winch_24E8.local', 3000),
 ]
+WINCH_ADDRESSES = []
 for index in range(len(fixing_points)):
     WINCH_ADDRESSES.append(('localhost', TCP_BASE_PORT_WINCHES+index))
 
@@ -348,6 +349,7 @@ def interpret_command(code_type, code_id, code_params):
     global actual_speed
     lander_command = ''
     winches_commands = []
+    displacement = [0, 0, 0]
     if code_type == 'g':
         #                                                     lander orientation
         if (code_id == 0) or (code_id == 1):
@@ -362,12 +364,13 @@ def interpret_command(code_type, code_id, code_params):
                     lander_command = lander_command + " F%d" % actual_speed
             #                                                   winches commands
             if re.search('x', code_params):
-                position = g_coordinates(code_params, (0, 0, 0))
+                next_position = g_coordinates(code_params, (0, 0, 0))
                 for index in range(len(actual_position)):
                     if absolute_displacement:
-                        actual_position[index] = position[index]
+                        displacement[index] = next_position[index] - actual_position[index]
                     else:
-                        actual_position[index] += position[index]
+                        displacement[index] = next_position[index]
+                    actual_position[index] += displacement[index]
                 lengths = position_to_lengths(actual_position, fixing_points)
                 # Fix for the length of initial positions
                 lengths_initial = position_to_lengths(inital_position, fixing_points)
@@ -379,7 +382,20 @@ def interpret_command(code_type, code_id, code_params):
                     )
                 if code_id == 1:
                     actual_speed = g_speed(code_params, actual_speed)
-                    winches_commands = [w + " F%d" % actual_speed for w in winches_commands]
+                    print "actual speed : %d" % actual_speed
+                    total_displacement = 0.0
+                    for distance in displacement:
+                        total_displacement += distance**2
+                    total_displacement = total_displacement ** 0.5
+                    print lengths
+                    print total_displacement
+                    for index in range(len(winches_commands)):
+                        ratio = 1.0
+                        if total_displacement > 0:
+                            ratio = abs(lengths[index])/total_displacement
+                        winch_speed = int(ratio*actual_speed)
+                        print "speed of winch %d : %d" % (index, winch_speed)
+                        winches_commands[index] += " F%d" % winch_speed
         #                                                                   wait
         elif code_id == 4:
             wait_delay = g_time(code_params)
@@ -440,6 +456,9 @@ if all([w is None for w in winch_sockets]):
     print INDENT + 'could not connect to any winch'
 elif any([w is None for w in winch_sockets]):
     print INDENT + "could not connect to all %d winches" % winch_nb
+    for index in range(winch_nb):
+        if winch_sockets[index] is not None:
+            print 2*INDENT + "connected to %s:%d" % WINCH_ADDRESSES[index]
 else:
     print INDENT + 'connected to all winches'
 
@@ -491,13 +510,14 @@ while True:
                         interpret_command(code_type, code_id, code_params)
                     for i, command in enumerate(winches_commands):
                         socket = winch_sockets[i]
-                        if socket:
-                            socket.send(command + '\n')
+#                        if socket:
+#                            socket.send(command + '\n')
                     if lander_connected:
                         if lander_command != '':
                             if valid:
                                 reply = 'OK'
-                                if VERBOSE >= 1:
+#                                if VERBOSE >= 1:
+                                if VERBOSE >= 0:
                                     print INDENT + \
                                         'sending "' + lander_command + '"'
                                 #                         send command to lander

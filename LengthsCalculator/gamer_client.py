@@ -23,6 +23,8 @@ TCP_PORT = 16000
 GET_RESPONSE = False
 PACKET_NB = 2
 DELAY = 100
+SEND_WINCHES_COMMANDS = True
+SEND_LANDER_COMMANDS = False
 
 USAGE = 'tcp_client.py -i <ip_addr> -p <port> -n <packet_nb> -d <delay> -r'
 
@@ -68,17 +70,19 @@ print 'Listening to "' + TCP_IP_ADDRESS + '" on port ' + str(TCP_PORT)
 for index in range(1, PACKET_NB+1):
     print INDENT + 'packet ' + str(index)
     #                                                       send winches command
-    g_code = 'G0 X' + str(index) + ' Y' + str(index) + ' Z' + str(index) + "\n"
-    s.send(g_code)
-    if GET_RESPONSE:
-        response = s.recv(TCP_BUFFER_SIZE)
-        print 2*INDENT + 'received "' + response.rstrip() +'"'
+    if SEND_WINCHES_COMMANDS:
+        g_code = 'G0 X' + str(index) + ' Y' + str(index) + ' Z' + str(index) + "\n"
+        s.send(g_code)
+        if GET_RESPONSE:
+            response = s.recv(TCP_BUFFER_SIZE)
+            print 2*INDENT + 'received "' + response.rstrip() +'"'
     #                                                        send lander command
-    g_code = 'G0 U' + str(index) + ' V' + str(index) + "\n"
-    s.send(g_code)
-    if GET_RESPONSE:
-        response = s.recv(TCP_BUFFER_SIZE)
-        print 2*INDENT + 'received "' + response.rstrip() +'"'
+    if SEND_LANDER_COMMANDS:
+        g_code = 'G0 U' + str(index) + ' V' + str(index) + "\n"
+        s.send(g_code)
+        if GET_RESPONSE:
+            response = s.recv(TCP_BUFFER_SIZE)
+            print 2*INDENT + 'received "' + response.rstrip() +'"'
     #                                                      wait between commands
     time.sleep (DELAY / 1000.0);
 time.sleep(2);
