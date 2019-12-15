@@ -11,8 +11,12 @@ import numpy as np
 # ------------------------------------------------------------------------------
 # Constants
 #
+SIMULATE_WINCHES = False
+SEND_G_CODES = True
+
 TCP_BUFFER_SIZE = 20  # Normally 1024, but we want fast response
 TCP_BUFFER_SIZE = 1024
+MAX_SPEED = 15000
 
 INDENT = '  '
 
@@ -47,9 +51,10 @@ WINCH_ADDRESSES = [
     ('winch_5820.local', 3000),
     ('winch_24E8.local', 3000),
 ]
-WINCH_ADDRESSES = []
-for index in range(len(fixing_points)):
-    WINCH_ADDRESSES.append(('localhost', TCP_BASE_PORT_WINCHES+index))
+if SIMULATE_WINCHES:
+    WINCH_ADDRESSES = []
+    for index in range(len(fixing_points)):
+        WINCH_ADDRESSES.append(('localhost', TCP_BASE_PORT_WINCHES+index))
 
 USAGE = "lengths_calculator.py -i <ip_addr>\n" + INDENT + \
     "-g <gamer_base_port>\n" + INDENT + \
@@ -191,9 +196,27 @@ def send_client_data(client_connection, client_name, data):
 
     if not client_connected:
         if VERBOSE >= 1:
-            print client_name + ' not connected'
+            print(client_name + ' not connected')
 
     return(client_connected)
+
+# ------------------------------------------------------------------------------
+# Send data to server
+#
+def send_server_data(server_connection, server_name, data):
+    server_connected = True
+    print data
+    try:
+        server_connection.send(data + "\n")
+    # except socket.error:
+    except:
+        server_connected = False
+
+    if not server_connected:
+        if VERBOSE >= 1:
+            print(server_name + ' not connected')
+
+    return(server_connected)
 
 # ------------------------------------------------------------------------------
 # Parse command
@@ -266,6 +289,40 @@ def g_coordinates(parameters, actual_pos):
             z = value
 
     return([x, y, z])
+
+# ------------------------------------------------------------------------------
+# parse length value
+#
+def g_length(parameters):
+    """returns a length from a g-code"""
+                                                                 # default value
+    length = 0
+                                                                    # parse text
+    params = parameters.split(' ')
+    for param in params:
+        coordinate = param[0]
+        value = float(param[1:])
+        if coordinate == 'l':
+            length = value
+
+    return(length)
+
+# ------------------------------------------------------------------------------
+# parse winch id
+#
+def g_motor(parameters):
+    """returns a motor (winch) id from a g-code"""
+                                                                 # default value
+    motor_id = 0
+                                                                    # parse text
+    params = parameters.split(' ')
+    for param in params:
+        coordinate = param[0]
+        value = int(param[1:])
+        if coordinate == 'm':
+            motor_id = value
+
+    return(motor_id)
 
 # ------------------------------------------------------------------------------
 # parse orientation values
@@ -351,9 +408,9 @@ def interpret_command(code_type, code_id, code_params):
     winches_commands = []
     displacement = [0, 0, 0]
     if code_type == 'g':
-        #                                                     lander orientation
+        #                                                        lander commands
         if (code_id == 0) or (code_id == 1):
-            #                                                    lander commands
+            #                                                 lander orientation
             if re.search('u', code_params):
                 actual_orientation = \
                     g_orientation(code_params, actual_orientation)
@@ -367,13 +424,16 @@ def interpret_command(code_type, code_id, code_params):
                 next_position = g_coordinates(code_params, (0, 0, 0))
                 for index in range(len(actual_position)):
                     if absolute_displacement:
-                        displacement[index] = next_position[index] - actual_position[index]
+                        displacement[index] = next_position[index] \
+                            - actual_position[index]
                     else:
                         displacement[index] = next_position[index]
                     actual_position[index] += displacement[index]
                 lengths = position_to_lengths(actual_position, fixing_points)
                 # Fix for the length of initial positions
-                lengths_initial = position_to_lengths(inital_position, fixing_points)
+                lengths_initial = position_to_lengths(
+                    inital_position, fixing_points
+                )
                 for i, o in enumerate(lengths_initial):
                     lengths[i] -= o
                 for l in lengths:
@@ -401,7 +461,22 @@ def interpret_command(code_type, code_id, code_params):
             wait_delay = g_time(code_params)
             if VERBOSE >= 1:
                 print(3*INDENT + "waiting for %.3f sec." % (wait_delay))
-                time.sleep(wait_delay)
+            time.sleep(wait_delay)
+        #                                                   single winch command
+        elif code_id == 6:
+            next_position = g_length(code_params)
+            actual_speed = g_speed(code_params, actual_speed)
+            motor_id = g_motor(code_params)
+            actual_speed = g_speed(code_params, actual_speed)
+            if VERBOSE >= 1:
+                print(
+                    3*INDENT + "moving winch %d to %d at speed %d" \
+                    % (motor_id, next_position, actual_speed)
+                )
+            winches_commands.append(
+                "G1 X%d F%d" \
+                % (next_position, actual_speed)
+            )
         #                                                  absolute displacement
         elif code_id == 90:
             if VERBOSE >= 1:
@@ -448,19 +523,13 @@ print INDENT + 'for lander on TCP/IP port ' + str(TCP_PORT_LANDER)
 #                                                                  winch sockets
 print 'Trying to connect to winches'
 winch_sockets = []
-#for address, port in WINCH_ADDRESSES:
-for index in range(winch_nb):
-    (address, port) = WINCH_ADDRESSES[index]
-    winch_sockets.append(connect_to_server(address, port))
-if all([w is None for w in winch_sockets]):
-    print INDENT + 'could not connect to any winch'
-elif any([w is None for w in winch_sockets]):
-    print INDENT + "could not connect to all %d winches" % winch_nb
-    for index in range(winch_nb):
-        if winch_sockets[index] is not None:
-            print 2*INDENT + "connected to %s:%d" % WINCH_ADDRESSES[index]
-else:
-    print INDENT + 'connected to all winches'
+for (address, port) in WINCH_ADDRESSES:
+    winch_socket = connect_to_server(address, port)
+    winch_sockets.append(winch_socket)
+    if winch_socket:
+        print INDENT + 'Connected to winch ' + address
+    else:
+        print INDENT + 'Not connected to winch ' + address
 
 # ------------------------------------------------------------------------------
 # Run sockets and restart them when client has disconnected
@@ -508,10 +577,33 @@ while True:
                         parse_command(command)
                     (winches_commands, lander_command) = \
                         interpret_command(code_type, code_id, code_params)
-                    for i, command in enumerate(winches_commands):
-                        socket = winch_sockets[i]
-#                        if socket:
-#                            socket.send(command + '\n')
+                    #                                send command to single winch
+                    if code_id == 6:
+                        winch_id = g_motor(code_params)
+                        socket = winch_sockets[winch_id]
+                        if SEND_G_CODES:
+                            server_connected = send_server_data(
+                                socket,
+                                WINCH_ADDRESSES[winch_id][0],
+                                winches_commands[0]
+                            )
+                            if not server_connected:
+                                (address, port) = WINCH_ADDRESSES[winch_id]
+                                print "reconnectong to %s : %d" % (address, port)
+                                winch_socket = connect_to_server(address, port)
+                                print winch_socket
+                                winch_sockets[winch_id] = winch_socket
+                        elif VERBOSE > 0:
+                            print("-> " + winches_commands[0])
+                    #                                    send command to winches
+                    else:
+                        for (index, command) in enumerate(winches_commands):
+                            socket = winch_sockets[index]
+                            if SEND_G_CODES:
+                                if socket:
+                                    socket.send(command + '\n')
+                            elif VERBOSE > 0:
+                                print("-> " + command)
                     if lander_connected:
                         if lander_command != '':
                             if valid:

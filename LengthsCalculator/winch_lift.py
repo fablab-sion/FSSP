@@ -19,18 +19,19 @@ TCP_IP_ADDRESS = 'geneKranz.local'
 TCP_IP_ADDRESS = 'localhost'
 TCP_PORT = 16000
 SEND_TCP = True
-INITIAL_POSITION = [1350, 1800, 400]
+WINCH_ID = 2
+DISTANCE = 10
 MAX_HEIGHT = 2000
 MAX_SPEED = 15000
 GET_RESPONSE = False
-SAMPLING_PERIOD = 0.5
+SAMPLING_PERIOD = 2.0
 END_DELAY = 1.0
 
-USAGE = 'gamer_send_sine.py -i <ip_addr> -p <port> -f <file>'
+USAGE = 'winch_lift.py -i <ip_addr> -p <port> -f <file>'
 
 try:
     opts, args = getopt.getopt(
-        sys.argv[1:], "hvi:p:d:rs", ["ip=", "port=", "delay="]
+        sys.argv[1:], "hvi:p:rsw:d:", ["ip=", "port=", "winch=", "distance="]
     )
 except getopt.GetoptError:
     print USAGE
@@ -47,12 +48,14 @@ for opt, arg in opts:
         TCP_IP_ADDRESS = arg
     elif opt in ('-p', '--port'):
         TCP_PORT = int(arg)
-    elif opt in ('-d', '--delay'):
-        SAMPLING_PERIOD = int(arg)
     elif opt == '-r':
         GET_RESPONSE = True
     elif opt == '-s':
         SEND_TCP = False
+    elif opt in ('-w', '--winch'):
+        WINCH_ID = int(arg)
+    elif opt in ('-d', '--distance'):
+        DISTANCE = int(arg)
 
 if len(args) >= 1:
     CODE_FILE = args[0]
@@ -63,15 +66,13 @@ if len(args) >= 1:
 # ------------------------------------------------------------------------------
 # send displacement command
 #
-def send_displacement(socket, target, speed, duration):
+def send_displacement(socket, winch_id, position, speed):
     #                                                  send displacement command
-    command = "g1 x%d y%d z%d" % (target[0], target[1], target[2])
-    command += " F%d" % (speed)
+    command = "g6 m%d l%d f%d" % (winch_id, position, speed)
     if VERBOSE > 0:
         print INDENT + command
     if SEND_TCP:
         tcp_socket.send(command + "\n")
-    time.sleep(duration)
     #                                                         check for response
     if GET_RESPONSE:
         try:
@@ -79,31 +80,6 @@ def send_displacement(socket, target, speed, duration):
             print 2*INDENT + response.rstrip()
         except:
             print 2*INDENT + 'no response'
-
-# ------------------------------------------------------------------------------
-# calculate displacement function
-#
-def displacement(index, max_height):
-    new_target = [
-        INITIAL_POSITION[0],
-        INITIAL_POSITION[1],
-        INITIAL_POSITION[2] + (index+1) * max_height/10
-    ]
-    return(new_target)
-
-# ------------------------------------------------------------------------------
-# calculate speed for given displacement
-#
-def displacement_speed(position1, position2, sampling_period):
-    distance = (
-        (position2[0] - position1[0])**2 +
-        (position2[1] - position1[1])**2 +
-        (position2[2] - position1[2])**2
-    ) ** 0.5
-    speed = distance/sampling_period * 60
-
-    return(speed)
-
 
 # ==============================================================================
 # Main
@@ -125,15 +101,7 @@ else:
 # ------------------------------------------------------------------------------
 # Send function
 #
-target = INITIAL_POSITION
-send_displacement(tcp_socket, target, MAX_SPEED, SAMPLING_PERIOD)
-command_nb = 10
-for index in range(command_nb):
-    new_target = displacement(index, MAX_HEIGHT)
-    speed = displacement_speed(target, new_target, SAMPLING_PERIOD)
-    send_displacement(tcp_socket, new_target, speed, SAMPLING_PERIOD)
-    target = new_target
+send_displacement(tcp_socket, WINCH_ID, -DISTANCE, MAX_SPEED)
 
-time.sleep(END_DELAY)
 if SEND_TCP:
     tcp_socket.close()
